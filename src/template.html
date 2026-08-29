@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>space_invader report</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --surface: #fcfcfb;
+  --page: #f9f9f7;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --border: rgba(11,11,11,0.10);
+  --seq: #2a78d6;
+  --seq-soft: #9ec5f4;
+  --crit: #d03b3b;
+  --warn-ink: #8a5a00;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1a1a19;
+    --page: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --border: rgba(255,255,255,0.10);
+    --seq: #3987e5;
+    --seq-soft: #1c5cab;
+    --crit: #e66767;
+    --warn-ink: #eda100;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; }
+header h1 { font-size: 22px; margin: 0 0 2px; }
+header h1 .v { color: var(--muted); font-size: 13px; font-weight: 400; }
+.rootpath { color: var(--ink-2); font-size: 14px; word-break: break-all; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.chip {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 14px; min-width: 96px;
+}
+.chip b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.chip span { color: var(--muted); font-size: 12px; }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px; margin-top: 20px;
+}
+.card h2 { font-size: 15px; margin: 0 0 10px; }
+.hint { color: var(--muted); font-size: 12px; }
+.crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 8px; font-size: 13px; }
+.crumbs button {
+  background: none; border: none; color: var(--seq); cursor: pointer;
+  font: inherit; padding: 2px 4px; border-radius: 4px;
+}
+.crumbs button:hover { background: var(--grid); }
+.crumbs .sep { color: var(--muted); }
+.crumbs .cur { color: var(--ink-2); padding: 2px 4px; }
+#tmwrap { position: relative; }
+#tm, #tmhl { width: 100%; height: 520px; display: block; border-radius: 6px; }
+#tmhl { position: absolute; inset: 0; pointer-events: none; }
+#tip {
+  position: fixed; z-index: 10; pointer-events: none; display: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 8px 10px; font-size: 12.5px; max-width: 480px;
+}
+#tip .tp { color: var(--ink-2); word-break: break-all; }
+#tip .tv { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 980px) { .cols { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--grid); }
+td { padding: 5px 8px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.pathcell { word-break: break-all; color: var(--ink-2); }
+.bar { height: 8px; border-radius: 0 4px 4px 0; background: var(--seq); min-width: 2px; }
+.barcell { width: 110px; }
+.showmore {
+  margin-top: 8px; background: none; border: 1px solid var(--border); color: var(--seq);
+  border-radius: 6px; padding: 5px 12px; cursor: pointer; font: inherit; font-size: 13px;
+}
+.showmore:hover { background: var(--grid); }
+.dupetiles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+details.grp { border: 1px solid var(--grid); border-radius: 8px; margin: 6px 0; background: var(--page); }
+details.grp summary {
+  cursor: pointer; padding: 8px 12px; display: flex; gap: 10px; align-items: baseline;
+  flex-wrap: wrap; font-variant-numeric: tabular-nums;
+}
+details.grp summary .k { color: var(--ink-2); word-break: break-all; }
+details.grp summary .w { color: var(--crit); font-weight: 600; }
+details.grp ul { margin: 0 0 10px; padding: 0 12px 0 30px; }
+details.grp li { color: var(--ink-2); font-size: 12.5px; word-break: break-all; padding: 1px 0; }
+.subhead { font-size: 13.5px; font-weight: 600; margin: 18px 0 4px; }
+.subhead small { color: var(--muted); font-weight: 400; }
+footer { margin-top: 28px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<script id="si-data" type="application/json">__SPACE_INVADER_DATA__</script>
+<div class="wrap">
+  <header>
+    <h1>&#128126; space_invader <span class="v" id="ver"></span></h1>
+    <div class="rootpath" id="rootpath"></div>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="card">
+    <h2>Where the space went</h2>
+    <div class="crumbs" id="crumbs"></div>
+    <div id="tmwrap">
+      <canvas id="tm"></canvas>
+      <canvas id="tmhl"></canvas>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="hint">Tile area = size on disk. Click a tile to zoom in; hover for details.</div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h2>Largest folders <span class="hint">(cumulative size)</span></h2>
+      <div id="dirs"></div>
+    </div>
+    <div class="card">
+      <h2>Largest files</h2>
+      <div id="files"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Duplicate files</h2>
+    <div id="dupes"></div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+<div id="tip"></div>
+
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("si-data").textContent);
+const M = DATA.meta;
+document.title = "space_invader — " + M.root;
+
+/* ---------- helpers ---------- */
+const UNITS = ["B","KB","MB","GB","TB","PB"];
+function human(b) {
+  let v = b, i = 0;
+  while (v >= 1024 && i < UNITS.length - 1) { v /= 1024; i++; }
+  return i === 0 ? b + " B" : v.toFixed(v >= 100 ? 1 : 2) + " " + UNITS[i];
+}
+function commas(n) { return n.toLocaleString("en-US"); }
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function pctOfTotal(s) {
+  return M.totalSize > 0 ? (s * 100 / M.totalSize).toFixed(s * 100 / M.totalSize < 10 ? 2 : 1) + "%" : "–";
+}
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/* ---------- header ---------- */
+document.getElementById("ver").textContent = "v" + M.version;
+document.getElementById("rootpath").textContent = M.root;
+const chips = [
+  [human(M.totalSize), "total scanned"],
+  [commas(M.fileCount), "files"],
+  [commas(M.dirCount), "folders"],
+  [(M.elapsedMs / 1000).toFixed(1) + "s", "scan time"],
+  [commas(M.errorCount), "inaccessible"],
+  [M.scannedAt, "scanned at"],
+];
+document.getElementById("chips").innerHTML = chips
+  .map(([v, l]) => `<div class="chip"><b>${esc(v)}</b><span>${esc(l)}</span></div>`)
+  .join("");
+
+/* ---------- treemap ---------- */
+// Annotate tree with full paths and top-level branch index for stable colors
+const SEP = M.root.includes("/") && !M.root.includes("\\") ? "/" : "\\";
+DATA.tree.path = M.root;
+(DATA.tree.c || []).forEach((child, i) => {
+  child.branch = i; // tree children are pre-sorted by size; slot order is fixed
+  annotate(child, DATA.tree.path.endsWith(SEP) ? DATA.tree.path : DATA.tree.path + SEP, i);
+});
+function annotate(n, prefix, branch) {
+  n.path = prefix + n.n;
+  n.branch = branch;
+  (n.c || []).forEach(ch => annotate(ch, n.path + SEP, branch));
+}
+
+const SLOTS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+function branchColor(branch) {
+  return branch != null && branch < 8 ? cssVar(SLOTS[branch]) : cssVar("--muted");
+}
+function mix(hexA, hexB, t) {
+  const pa = parseHex(hexA), pb = parseHex(hexB);
+  const c = pa.map((a, i) => Math.round(a + (pb[i] - a) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function parseHex(h) {
+  h = h.replace("#", "");
+  if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+
+function squarify(items, x, y, w, h) {
+  // items: [{node, area}] sorted by area desc. Returns [{node,x,y,w,h}].
+  const rects = [];
+  let cx = x, cy = y, cw = w, ch = h;
+  let row = [];
+  const sum = r => r.reduce((a, it) => a + it.area, 0);
+  function worst(r, len) {
+    const s = sum(r);
+    if (s <= 0 || len <= 0) return Infinity;
+    let mx = -Infinity, mn = Infinity;
+    for (const it of r) { mx = Math.max(mx, it.area); mn = Math.min(mn, it.area); }
+    const s2 = s * s, l2 = len * len;
+    return Math.max(l2 * mx / s2, s2 / (l2 * mn));
+  }
+  function layoutRow(r) {
+    const s = sum(r);
+    if (s <= 0) return;
+    if (cw >= ch) {
+      const strip = s / ch;
+      let yy = cy;
+      for (const it of r) { const hh = it.area / strip; rects.push({node: it.node, x: cx, y: yy, w: strip, h: hh}); yy += hh; }
+      cx += strip; cw -= strip;
+    } else {
+      const strip = s / cw;
+      let xx = cx;
+      for (const it of r) { const ww = it.area / strip; rects.push({node: it.node, x: xx, y: cy, w: ww, h: strip}); xx += ww; }
+      cy += strip; ch -= strip;
+    }
+  }
+  for (const it of items) {
+    if (it.area <= 0) continue;
+    const len = Math.min(cw, ch);
+    if (row.length && worst(row, len) < worst(row.concat([it]), len)) {
+      layoutRow(row);
+      row = [it];
+    } else {
+      row.push(it);
+    }
+  }
+  if (row.length) layoutRow(row);
+  return rects;
+}
+
+function childrenWithRest(node) {
+  const kids = (node.c || []).slice();
+  const kidSum = kids.reduce((a, k) => a + k.s, 0);
+  const rest = node.s - kidSum;
+  const items = kids.map(k => ({node: k, area: 0, size: k.s}));
+  if (rest > 0) {
+    items.push({node: {n: "(files & smaller items)", s: rest, pseudo: true, branch: node.branch, path: node.path}, area: 0, size: rest});
+  }
+  items.sort((a, b) => b.size - a.size);
+  return items;
+}
+
+const canvas = document.getElementById("tm");
+const hlCanvas = document.getElementById("tmhl");
+const tip = document.getElementById("tip");
+let currentChain = [DATA.tree];
+let drawnRects = [];   // flat, in draw order (parents before children)
+const GAP = 2, LABEL_H = 16;
+
+function drawTreemap() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  for (const c of [canvas, hlCanvas]) {
+    c.width = W * dpr; c.height = H * dpr;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const surface = cssVar("--surface");
+  const ink = cssVar("--ink");
+  ctx.fillStyle = surface;
+  ctx.fillRect(0, 0, W, H);
+  drawnRects = [];
+  const root = currentChain[currentChain.length - 1];
+  drawLevel(ctx, root, 0, 0, W, H, 1, surface, ink);
+  drawCrumbs();
+  clearHighlight();
+}
+
+function drawLevel(ctx, node, x, y, w, h, depth, surface, ink) {
+  const items = childrenWithRest(node);
+  if (!items.length || w < 8 || h < 8) return;
+  const total = items.reduce((a, it) => a + it.size, 0);
+  if (total <= 0) return;
+  items.forEach(it => { it.area = it.size / total * w * h; });
+  const rects = squarify(items, x, y, w, h);
+  for (const r of rects) {
+    const gx = r.x + GAP / 2, gy = r.y + GAP / 2;
+    const gw = Math.max(0, r.w - GAP), gh = Math.max(0, r.h - GAP);
+    if (gw < 1 || gh < 1) continue;
+    const base = branchColor(r.node.branch);
+    // Recede toward the surface with depth; pseudo "(files)" tiles recede further.
+    const fade = r.node.pseudo ? 0.82 : Math.min(0.15 + (depth - 1) * 0.18, 0.62);
+    ctx.fillStyle = mix(base, surface, fade);
+    roundRect(ctx, gx, gy, gw, gh, 3);
+    ctx.fill();
+    drawnRects.push({x: gx, y: gy, w: gw, h: gh, node: r.node, depth});
+    const hasKids = !r.node.pseudo && r.node.c && r.node.c.length;
+    const canNest = hasKids && depth < 3 && gw > 70 && gh > 54;
+    // Label
+    if (gw > 44 && gh > 15) {
+      ctx.fillStyle = ink;
+      ctx.font = (depth === 1 ? "600 " : "") + "11.5px system-ui, 'Segoe UI', sans-serif";
+      ctx.textBaseline = "top";
+      const label = fitText(ctx, r.node.n, gw - 10);
+      ctx.fillText(label, gx + 5, gy + 3);
+      if (gh > 30 && !canNest) {
+        ctx.fillStyle = cssVar("--ink-2");
+        ctx.font = "10.5px system-ui, 'Segoe UI', sans-serif";
+        ctx.fillText(fitText(ctx, human(r.node.s), gw - 10), gx + 5, gy + 16);
+      }
+    }
+    if (canNest) {
+      drawLevel(ctx, r.node, gx + 3, gy + LABEL_H, gw - 6, gh - LABEL_H - 3, depth + 1, surface, ink);
+    }
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function fitText(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  while (text.length > 1 && ctx.measureText(text + "…").width > maxW) {
+    text = text.slice(0, -1);
+  }
+  return text + "…";
+}
+
+function hitTest(mx, my) {
+  for (let i = drawnRects.length - 1; i >= 0; i--) {
+    const r = drawnRects[i];
+    if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) return r;
+  }
+  return null;
+}
+
+function clearHighlight() {
+  const hctx = hlCanvas.getContext("2d");
+  hctx.setTransform(1, 0, 0, 1, 0, 0);
+  hctx.clearRect(0, 0, hlCanvas.width, hlCanvas.height);
+}
+
+canvas.addEventListener("mousemove", e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const hit = hitTest(mx, my);
+  clearHighlight();
+  if (!hit) { tip.style.display = "none"; return; }
+  const dpr = window.devicePixelRatio || 1;
+  const hctx = hlCanvas.getContext("2d");
+  hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  hctx.strokeStyle = cssVar("--ink");
+  hctx.lineWidth = 1.5;
+  roundRect(hctx, hit.x + 0.75, hit.y + 0.75, hit.w - 1.5, hit.h - 1.5, 3);
+  hctx.stroke();
+  tip.style.display = "block";
+  tip.innerHTML =
+    `<div class="tv">${esc(hit.node.pseudo ? hit.node.n : hit.node.n)} — ${human(hit.node.s)} (${pctOfTotal(hit.node.s)} of scan)</div>` +
+    `<div class="tp">${esc(hit.node.path || "")}${hit.node.pseudo ? " " + esc(hit.node.n) : ""}</div>`;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let tx = e.clientX + 14, ty = e.clientY + 14;
+  if (tx + tw > window.innerWidth - 8) tx = e.clientX - tw - 10;
+  if (ty + th > window.innerHeight - 8) ty = e.clientY - th - 10;
+  tip.style.left = tx + "px";
+  tip.style.top = ty + "px";
+});
+canvas.addEventListener("mouseleave", () => { tip.style.display = "none"; clearHighlight(); });
+canvas.addEventListener("click", e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  // Zoom into the top-level tile under the cursor if it has children.
+  const top = drawnRects.filter(r => r.depth === 1 && mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h)[0];
+  if (top && !top.node.pseudo && top.node.c && top.node.c.length) {
+    currentChain.push(top.node);
+    drawTreemap();
+    tip.style.display = "none";
+  }
+});
+
+function drawCrumbs() {
+  const el = document.getElementById("crumbs");
+  el.innerHTML = "";
+  currentChain.forEach((node, i) => {
+    if (i > 0) {
+      const sep = document.createElement("span");
+      sep.className = "sep";
+      sep.textContent = SEP;
+      el.appendChild(sep);
+    }
+    const label = i === 0 ? M.root : node.n;
+    if (i === currentChain.length - 1) {
+      const cur = document.createElement("span");
+      cur.className = "cur";
+      cur.textContent = label + " — " + human(node.s);
+      el.appendChild(cur);
+    } else {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.addEventListener("click", () => {
+        currentChain = currentChain.slice(0, i + 1);
+        drawTreemap();
+      });
+      el.appendChild(b);
+    }
+  });
+}
+
+function drawLegend() {
+  const el = document.getElementById("legend");
+  const kids = (DATA.tree.c || []).slice(0, 8);
+  el.innerHTML = kids
+    .map((k, i) => `<span><span class="sw" style="background:${branchColor(i)}"></span>${esc(k.n)}</span>`)
+    .join("") + (DATA.tree.c && DATA.tree.c.length > 8
+      ? `<span><span class="sw" style="background:${cssVar("--muted")}"></span>other</span>` : "");
+}
+
+/* ---------- tables ---------- */
+function renderTable(elId, rows, initial) {
+  const el = document.getElementById(elId);
+  const max = rows.length ? rows[0].s : 1;
+  function render(count) {
+    let html = '<table><tr><th class="barcell"></th><th style="text-align:right">size</th><th style="text-align:right">% of scan</th><th>path</th></tr>';
+    for (const r of rows.slice(0, count)) {
+      const w = Math.max(2, Math.round(r.s / max * 100));
+      html += `<tr><td class="barcell"><div class="bar" style="width:${w}%"></div></td>` +
+        `<td class="num">${human(r.s)}</td><td class="num">${pctOfTotal(r.s)}</td>` +
+        `<td class="pathcell">${esc(r.p)}</td></tr>`;
+    }
+    html += "</table>";
+    if (rows.length > count) {
+      html += `<button class="showmore" id="${elId}-more">show all ${rows.length}</button>`;
+    }
+    el.innerHTML = html;
+    const btn = document.getElementById(elId + "-more");
+    if (btn) btn.addEventListener("click", () => render(rows.length));
+  }
+  render(Math.min(initial, rows.length));
+  if (!rows.length) el.innerHTML = '<div class="hint">(nothing found)</div>';
+}
+renderTable("dirs", DATA.topDirs, 25);
+renderTable("files", DATA.topFiles, 25);
+
+/* ---------- duplicates ---------- */
+(function renderDupes() {
+  const el = document.getElementById("dupes");
+  const D = DATA.dupes;
+  if (!D.enabled) {
+    el.innerHTML = '<div class="hint">Duplicate detection was skipped (--no-dupes).</div>';
+    return;
+  }
+  let html = '<div class="dupetiles">' +
+    `<div class="chip"><b>${commas(D.groupsAbsolute)}</b><span>absolute groups</span></div>` +
+    `<div class="chip"><b style="color:var(--crit)">${human(D.wastedAbsolute)}</b><span>reclaimable (confirmed)</span></div>` +
+    `<div class="chip"><b>${commas(D.groupsLikely)}</b><span>likely groups</span></div>` +
+    `<div class="chip"><b style="color:var(--warn-ink)">${human(D.wastedLikely)}</b><span>up to (unconfirmed)</span></div>` +
+    "</div>";
+
+  function section(title, note, groups, keyLabel) {
+    if (!groups.length) return "";
+    let s = `<div class="subhead">${title} <small>${note}</small></div>`;
+    for (const g of groups) {
+      s += `<details class="grp"><summary>` +
+        `<b>${g.f.length}${g.truncated ? "+" : ""} × ${human(g.sz)}</b>` +
+        `<span class="w">wasted ${human(g.w)}</span>` +
+        `<span class="k">${keyLabel}${esc(g.k.length > 60 ? g.k.slice(0, 60) + "…" : g.k)}</span>` +
+        `</summary><ul>` +
+        g.f.map(p => `<li>${esc(p)}</li>`).join("") +
+        (g.truncated ? "<li>… more files in this group (truncated in report)</li>" : "") +
+        `</ul></details>`;
+    }
+    return s;
+  }
+
+  html += section(
+    "Absolute duplicates",
+    "full content hash identical",
+    D.absolute, "hash "
+  );
+  html += section(
+    "Likely duplicates — samples match",
+    `content samples identical, full hash skipped (file exceeds ${human(M.maxFullHash)} cap)`,
+    D.likelySample, ""
+  );
+  html += section(
+    "Likely duplicates — same size &amp; name",
+    "identical byte size and filename in different folders; content not hashed",
+    D.likelyName, ""
+  );
+  if (!D.absolute.length && !D.likelySample.length && !D.likelyName.length) {
+    html += '<div class="hint">No duplicates found above the size thresholds. \u{1F389}</div>';
+  }
+  el.innerHTML = html;
+})();
+
+/* ---------- footer ---------- */
+document.getElementById("foot").innerHTML =
+  `space_invader is read-only. It never modifies, moves, or deletes anything. ` +
+  `Sizes are logical file sizes (compression, sparse regions, and allocation overhead not reflected). ` +
+  `Duplicate hashing considered files ≥ ${human(M.dupeMinSize)}; files &gt; ${human(M.maxFullHash)} were sample-hashed only. ` +
+  `${commas(M.errorCount)} items were inaccessible (permissions/locks) and are not counted.`;
+
+/* ---------- boot ---------- */
+drawLegend();
+drawTreemap();
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(drawTreemap, 120);
+});
+if (window.matchMedia) {
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    drawLegend();
+    drawTreemap();
+  });
+}
+</script>
+</body>
+</html>

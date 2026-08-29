@@ -1,0 +1,8 @@
+# Build artifacts
+/target
+
+# Generated scan reports (root-level only; src/template.html is source)
+/*.html
+
+# Benchmark and scan logs
+*.log

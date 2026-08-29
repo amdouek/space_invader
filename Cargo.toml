@@ -1,0 +1,22 @@
+[package]
+name = "space_invader"
+version = "0.1.0"
+edition = "2021"
+description = "Fast read-only disk space scanner with duplicate detection"
+
+[dependencies]
+clap = { version = "4", default-features = false, features = ["derive", "std", "help", "usage", "error-context", "suggestions"] }
+jwalk = "0.8"
+rayon = "1.10"
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+colored = "2"
+dunce = "1"
+
+[target.'cfg(windows)'.dependencies]
+ntfs = "0.4.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
